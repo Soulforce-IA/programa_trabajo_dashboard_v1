@@ -10,6 +10,18 @@ def main():
         st.session_state.auth = False
 
     if not st.session_state.auth:
+
+        col1, col2 = st.columns([1, 5])
+
+        with col1:
+            st.image("logo.png", width=70)
+
+        with col2:
+            st.markdown(
+                "<h3 style='margin-top:10px;'>📊 Dashboard de producción</h3>",
+                unsafe_allow_html=True
+            )
+
         st.markdown("### 🔒 Acceso interno")
         pwd = st.text_input("Contraseña", type="password")
         if st.button("Ingresar"):
@@ -20,7 +32,11 @@ def main():
                 st.error("Contraseña incorrecta")
         return  # detiene solo la función, no todo el script
 
-    st.set_page_config(page_title="Cargar Excel | Producción", layout="wide", initial_sidebar_state="collapsed")
+    st.set_page_config(
+        page_title="Cargar Excel | Producción",
+        layout="wide",
+        initial_sidebar_state="collapsed"
+    )
 
     st.markdown(
         """
