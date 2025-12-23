@@ -19,7 +19,7 @@ from pages.tabs_programacion import render_programacion_tab
 st.set_page_config(
     page_title="Dashboard | Producción",
     layout="wide",
-    #initial_sidebar_state="collapsed",  # <-- sidebar oculto al inicio
+    initial_sidebar_state="collapsed",  # <-- sidebar oculto al inicio
 )
 
 st.markdown(

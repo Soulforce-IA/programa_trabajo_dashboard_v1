@@ -20,7 +20,7 @@ def main():
                 st.error("Contraseña incorrecta")
         return  # detiene solo la función, no todo el script
 
-    st.set_page_config(page_title="Cargar Excel | Producción", layout="wide")
+    st.set_page_config(page_title="Cargar Excel | Producción", layout="wide", initial_sidebar_state="collapsed")
 
     st.markdown(
         """
