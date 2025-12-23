@@ -6,113 +6,17 @@ import base64
 # FUNCIÓN AUXILIAR: IMÁGENES A BASE64
 # =====================================================
 def get_image_base64(path):
-    if not os.path.exists(path):
+    try:
+        if not path or not os.path.exists(path):
+            return None
+        with open(path, "rb") as f:
+            data = f.read()
+        return base64.b64encode(data).decode()
+    except Exception:
         return None
-    with open(path, "rb") as f:
-        data = f.read()
-    return base64.b64encode(data).decode()
 
 # =====================================================
-# ESTILOS CSS (EQUILIBRIO DE ESPACIOS)
-# =====================================================
-st.markdown(
-    """
-    <style>
-    /* 1. AJUSTE DE ESPACIO SUPERIOR (SUAVIZADO) */
-    /* Subimos el bloque de la pestaña pero dejando un margen de seguridad */
-    div[data-testid="stVerticalBlock"] > div:has(div.machine-card) {
-        margin-top: -5px !important; 
-    }
-
-    /* 2. CONTENEDOR DE GRILLA CON RESPIRO */
-    .grid-container {
-        padding-top: 8px; /* Crea el espacio necesario entre la pestaña y las cards */
-    }
-
-    .machine-card {
-        background-color: #ffffff;
-        border: 1px solid #e5e7eb;
-        border-radius: 12px;
-        padding: 12px;
-        margin-bottom: 15px;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-        display: flex;
-        flex-direction: column; 
-        gap: 10px;
-        height: 180px; 
-        overflow: hidden;
-    }
-
-    .card-header-row {
-        display: flex;
-        gap: 10px;
-        align-items: center;
-        border-bottom: 1px solid #f3f4f6;
-        padding-bottom: 8px;
-    }
-
-    .machine-img-container {
-        flex-shrink: 0;
-        width: 75px;
-        height: 75px;
-        border-radius: 5px;
-        overflow: hidden;
-        background-color: #f3f4f6;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .machine-img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-    }
-
-    .machine-title {
-        font-size: 20px;
-        font-weight: 700;
-        color: #111827;
-        margin: 0;
-        line-height: 1.1;
-    }
-
-    .machine-sub {
-        font-size: 14px;
-        color: #9ca3af;
-    }
-
-    .activities-scroll-area {
-        flex-grow: 1;
-        overflow-y: auto;
-        padding-right: 2px;
-    }
-
-    .activity-box {
-        background-color: #f8fafc;
-        border-left: 3px solid #3b82f6;
-        padding: 4px 8px;
-        border-radius: 4px;
-        margin-bottom: 4px;
-        font-size: 14px;
-        color: #334155;
-        display: flex;
-        justify-content: space-between;
-    }
-
-    .no-activity {
-        font-size: 14px;
-        color: #9ca3af;
-        font-style: italic;
-        padding-top: 5px;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
-
-# =====================================================
-# CONFIGURACIÓN DE IMÁGENES Y RENDERIZADO
+# CONFIGURACIÓN DE IMÁGENES
 # =====================================================
 IMAGENES = {
     "Torno LTC": "assets/ltc.png",
@@ -125,13 +29,16 @@ IMAGENES = {
 
 def render_maquina_card(maquina):
     img_path = IMAGENES.get(maquina["maquina"])
-    img_b64 = get_image_base64(img_path) if img_path else None
+    img_b64 = get_image_base64(img_path)
+    
+    # Si hay imagen la pone, si no pone un emoji de fábrica
     img_html = f'<img src="data:image/png;base64,{img_b64}" class="machine-img">' if img_b64 else "🏭"
 
     filas_html = ""
-    if maquina["actividades"]:
-        for act in maquina["actividades"]:
-            filas_html += f'<div class="activity-box"><span><b>{act["oit"]}</b></span><span>{act["desc"]}</span></div>'
+    actividades = maquina.get("actividades", [])
+    if actividades:
+        for act in actividades:
+            filas_html += f'<div class="activity-box"><span><b>{act.get("oit", "N/A")}</b></span><span>{act.get("desc", "")}</span></div>'
     else:
         filas_html = '<div class="no-activity">Sin actividades programadas</div>'
 
@@ -140,7 +47,7 @@ def render_maquina_card(maquina):
         <div class="card-header-row">
             <div class="machine-img-container">{img_html}</div>
             <div>
-                <div class="machine-title">{maquina['maquina']}</div>
+                <div class="machine-title">{maquina.get('maquina', 'Desconocida')}</div>
                 <div class="machine-sub">Costo hora: --</div>
             </div>
         </div>
@@ -154,7 +61,102 @@ def render_maquina_card(maquina):
 # =====================================================
 # TAB PROGRAMACIÓN
 # =====================================================
-def render_programacion_tab():
+def render_programacion_tab(df=None, kpi_data=None):
+    # INYECTAMOS EL CSS AQUÍ PARA ASEGURAR QUE SE CARGUE EN LA CLOUD
+    st.markdown(
+        """
+        <style>
+        /* AJUSTE DE ESPACIO SUPERIOR */
+        div[data-testid="stVerticalBlock"] > div:has(div.machine-card) {
+            margin-top: -5px !important; 
+        }
+
+        .grid-container {
+            padding-top: 8px;
+        }
+
+        .machine-card {
+            background-color: #ffffff !important;
+            border: 1px solid #e5e7eb !important;
+            border-radius: 12px !important;
+            padding: 12px !important;
+            margin-bottom: 15px !important;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05) !important;
+            display: flex !important;
+            flex-direction: column !important; 
+            gap: 10px !important;
+            height: 180px !important; 
+            overflow: hidden !important;
+        }
+
+        .card-header-row {
+            display: flex !important;
+            gap: 10px !important;
+            align-items: center !important;
+            border-bottom: 1px solid #f3f4f6 !important;
+            padding-bottom: 8px !important;
+        }
+
+        .machine-img-container {
+            flex-shrink: 0 !important;
+            width: 75px !important;
+            height: 75px !important;
+            border-radius: 5px !important;
+            overflow: hidden !important;
+            background-color: #f3f4f6 !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+        }
+
+        .machine-img {
+            width: 100% !important;
+            height: 100% !important;
+            object-fit: cover !important;
+        }
+
+        .machine-title {
+            font-size: 20px !important;
+            font-weight: 700 !important;
+            color: #111827 !important;
+            margin: 0 !important;
+            line-height: 1.1 !important;
+        }
+
+        .machine-sub {
+            font-size: 14px !important;
+            color: #9ca3af !important;
+        }
+
+        .activities-scroll-area {
+            flex-grow: 1 !important;
+            overflow-y: auto !important;
+            padding-right: 2px !important;
+        }
+
+        .activity-box {
+            background-color: #f8fafc !important;
+            border-left: 3px solid #3b82f6 !important;
+            padding: 4px 8px !important;
+            border-radius: 4px !important;
+            margin-bottom: 4px !important;
+            font-size: 14px !important;
+            color: #334155 !important;
+            display: flex !important;
+            justify-content: space-between !important;
+        }
+
+        .no-activity {
+            font-size: 14px !important;
+            color: #9ca3af !important;
+            font-style: italic !important;
+            padding-top: 5px !important;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
     maquinas = [
         {"maquina": "Torno LTC", "centro": "Tornos", "actividades": [{"oit": "OIT-101", "desc": "Mecanizado eje principal"}, {"oit": "OIT-102", "desc": "Rosca interna 2 pulgadas"}, {"oit": "OIT-103", "desc": "Acabado superficial"}]},
         {"maquina": "Torno DOOSAN", "centro": "Tornos", "actividades": [{"oit": "OIT-201", "desc": "Desbaste material"}, {"oit": "OIT-202", "desc": "Perforación profunda"}, {"oit": "OIT-203", "desc": "Control calidad"}]},
@@ -170,7 +172,6 @@ def render_programacion_tab():
         {"maquina": "Técnicos de ensamble", "centro": "Apoyo", "actividades": [{"oit": "OIT-ENS1", "desc": "Armado conjunto A"}]},
     ]
 
-    # Contenedor especial para el espaciado
     st.markdown('<div class="grid-container">', unsafe_allow_html=True)
     
     for i in range(0, len(maquinas), 3):
