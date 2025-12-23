@@ -52,9 +52,10 @@ def main():
     if uploaded:
         st.session_state["excel_file"] = uploaded
         st.success("Excel cargado. Redirigiendo al Dashboard…")
-        st.switch_page("pages/1_Dashboard.py")
+        st.switch_page("pages/dashboard.py")
     else:
         st.info("Sube el archivo para habilitar el dashboard.")
 
 if __name__ == "__main__":
     main()
+
